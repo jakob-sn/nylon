@@ -1,0 +1,79 @@
+use std::str::FromStr;
+
+use ast::{StatementBlock, Statement, Expression};
+use ast::opcode::Binary as BinOp;
+use ast::opcode::Assign as AssignOp;
+
+grammar;
+
+// Macros
+Comma<T>: Vec<T> = {
+	<mut v:(<T> ",")*> <e:T?> => match e {
+		None => v,
+		Some(e) => {
+			v.push(e);
+			v
+		}
+	}
+};
+
+Tier<Op, Next>: Box<Expression> = {
+	<l:Tier<Op, Next>> <op:Op> <r:Next> => Box::new(Expression::BinaryOp(<>)),
+	Next
+};
+
+
+// Grammar starts here
+pub StatementBlock: StatementBlock = {
+	"={" <Statement+> "}" => StatementBlock::new(<>)
+}
+
+pub Statement: Box<Statement> = {
+	<Expression> ";" => Box::new(Statement::Expression(<>)),
+    <Assign> ";"
+}
+
+Assign: Box<Statement> = {
+	Identifier AssignOp Expression => Box::new(Statement::Assign(<>))
+};
+
+AssignOp: AssignOp = {
+	"=" => AssignOp::Eq,
+	"+=" => AssignOp::Add,
+	"-=" => AssignOp::Sub,
+	"*=" => AssignOp::Mul,
+	"/=" => AssignOp::Div
+}
+
+Expression = Tier<ExpressionOp, Factor>;
+
+Factor = Tier<FactorOp, Term>;
+
+ExpressionOp: BinOp = {
+	"+" => BinOp::Add,
+	"-" => BinOp::Sub
+};
+
+FactorOp: BinOp = {
+	"*" => BinOp::Mul,
+	"/" => BinOp::Div
+};
+
+Term: Box<Expression> = {
+	NumberLiteral => Box::new(Expression::Number(<>)),
+	Identifier => Box::new(Expression::Identifier(<>)),
+	Identifier Parameters => Box::new(Expression::FunctionCall(<>)),
+	"(" <Expression> ")"
+};
+
+Parameters: Vec<Box<Expression>> = {
+	"(" <Comma<Expression>> ")"
+}
+
+Identifier: String = {
+	r"[a-zA-Z][a-zA-Z0-9_]*" => String::from(<>)
+};
+
+NumberLiteral: f64 = {
+	r"[+-]?[0-9]+(\.[0-9]+)?" => f64::from_str(<>).unwrap()
+};
