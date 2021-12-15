@@ -7,6 +7,7 @@ use ast::opcode::Assign as AssignOp;
 grammar;
 
 // Macros
+#[inline]
 Comma<T>: Vec<T> = {
 	<mut v:(<T> ",")*> <e:T?> => match e {
 		None => v,
@@ -26,12 +27,13 @@ Tier<Op, Next>: Box<Expression> = {
 // Grammar starts here
 pub StatementBlock: StatementBlock = {
 	"={" <Statement+> "}" => StatementBlock::new(<>)
-}
+};
 
 pub Statement: Box<Statement> = {
 	<Expression> ";" => Box::new(Statement::Expression(<>)),
     <Assign> ";"
-}
+};
+
 
 Assign: Box<Statement> = {
 	Identifier AssignOp Expression => Box::new(Statement::Assign(<>))
